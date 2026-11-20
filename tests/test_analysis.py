@@ -9,6 +9,7 @@ from src.analyze import (
     build_data_quality_summary,
     build_offer_template,
     build_rating_summary,
+    run_analysis,
 )
 
 
@@ -37,6 +38,7 @@ def test_quality_summary_reports_duplicates_missing_years_and_year_cohorts():
             "tmdb_id": [1, 1, 3],
             "release_year": [1999, 2000, None],
             "title": ["Old", None, "Unknown year"],
+            "internal_payload": [None, None, None],
         }
     )
 
@@ -48,6 +50,8 @@ def test_quality_summary_reports_duplicates_missing_years_and_year_cohorts():
     assert quality["films_before_2000"] == 1
     assert quality["films_2000_onward"] == 1
     assert quality["missing_values_title"] == 1
+    assert quality["missing_values_tmdb_id"] == 0
+    assert "missing_values_internal_payload" not in quality
 
 
 def test_quality_summary_counts_zero_financial_values_without_reclassifying_them():
@@ -101,6 +105,34 @@ def test_content_shortlist_rejects_non_positive_limit():
         assert "positive integer" in str(exc)
     else:
         raise AssertionError("A zero shortlist limit must be rejected")
+
+
+def test_run_analysis_uses_passed_movie_data_without_reading_a_file(
+    tmp_path,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        "src.analyze.OFFER_TEMPLATE_PATH",
+        tmp_path / "offers.csv",
+    )
+    movies = pd.DataFrame(
+        {
+            "tmdb_id": [1],
+            "title": ["Film"],
+            "release_year": [2020],
+            "vote_average": [8.0],
+            "vote_count": [100],
+        }
+    )
+
+    ratings, _ = run_analysis(
+        input_path=tmp_path / "missing.csv",
+        report_dir=tmp_path / "reports",
+        movie_data=movies,
+    )
+
+    assert ratings.loc[0, "film_count"] == 1
+    assert (tmp_path / "reports" / "rating_summary.csv").is_file()
 
 
 def test_offer_template_unifies_candidates_and_keeps_offer_fields_blank():

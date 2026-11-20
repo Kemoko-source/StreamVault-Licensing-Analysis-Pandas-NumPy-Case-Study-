@@ -194,9 +194,9 @@ def build_license_decision(
     validated["selected"] = False
     summary_rows = []
     # Optimize each time window on its own score column.
-    for cohort, score_column, rank_column in (
-        ("all_years", "all_year_score", "all_year_rank"),
-        ("2000_onward", "post_2000_score", "post_2000_rank"),
+    for cohort, score_column in (
+        ("all_years", "all_year_score"),
+        ("2000_onward", "post_2000_score"),
     ):
         score = pd.to_numeric(validated[score_column], errors="coerce")
         eligible = validated["eligibility_status"].eq("eligible")
@@ -249,8 +249,10 @@ def build_license_decision(
 def run_license_decision(
     offers_path: str | Path = OFFERS_PATH,
     budget_usd: object = BUDGET_USD,
+    *,
+    offer_data: pd.DataFrame | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    offers = pd.read_csv(offers_path)
+    offers = offer_data.copy() if offer_data is not None else pd.read_csv(offers_path)
     summary, candidates = build_license_decision(offers, budget_usd)
     DECISION_SUMMARY_PATH.parent.mkdir(parents=True, exist_ok=True)
     summary.to_csv(DECISION_SUMMARY_PATH, index=False)

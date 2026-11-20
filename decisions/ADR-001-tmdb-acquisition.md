@@ -13,8 +13,8 @@ request should not erase a previously acquired record.
 ## Decision
 
 Use TMDb movie and credits data for catalog details. Log each source row,
-retry temporary request failures within a fixed limit, and keep the last local
-record when a refresh fails.
+retry temporary request failures within configured limits, pace requests
+between movie IDs, and keep the last local record when a refresh fails.
 
 ## Alternatives considered
 

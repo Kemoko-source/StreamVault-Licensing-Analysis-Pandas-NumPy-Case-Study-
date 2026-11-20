@@ -6,6 +6,7 @@ from src.recommend import (
     OFFER_FIELDS,
     _complete_offer_count,
     _write_client_memo,
+    build_franchise_targets,
     build_standalone_shortlist,
 )
 
@@ -35,6 +36,27 @@ def test_missing_collection_metadata_does_not_crash_or_mark_titles_standalone():
 
     assert standalones.empty
     assert "reason" in standalones.columns
+
+
+def test_single_candidate_collection_is_not_promoted_to_a_franchise_bundle():
+    movies = pd.DataFrame(
+        [
+            {
+                "tmdb_id": 1,
+                "title": "One listed installment",
+                "release_year": 2010,
+                "vote_average": 8.0,
+                "vote_count": 1000,
+                "collection_id": 10,
+                "collection_name": "Larger Collection",
+                "collection_metadata_status": "present",
+            }
+        ]
+    )
+
+    franchises = build_franchise_targets(movies)
+
+    assert franchises.empty
 
 
 def test_complete_offer_count_counts_complete_rows_not_all_or_nothing():

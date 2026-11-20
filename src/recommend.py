@@ -8,10 +8,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-if __package__:
-    from src.analyze import build_content_shortlist
-else:
-    from analyze import build_content_shortlist
+from src.analyze import build_content_shortlist
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -229,7 +226,16 @@ def build_talent_signals(
         ):
             if source_column not in cohort_rows:
                 continue
-            talent_rows = cohort_rows[["tmdb_id", "title", "adjusted_rating", "vote_average", "vote_count", source_column]].copy()
+            talent_rows = cohort_rows[
+                [
+                    "tmdb_id",
+                    "title",
+                    "adjusted_rating",
+                    "vote_average",
+                    "vote_count",
+                    source_column,
+                ]
+            ].copy()
             talent_rows["talent"] = (
                 talent_rows[source_column].astype("string").str.split("|", regex=False)
                 if split_names
@@ -400,7 +406,6 @@ def build_data_diagnosis(
     offers: pd.DataFrame,
 ) -> pd.DataFrame:
     """Rank observed data and decision risks with evidence and impacts."""
-    source_count = len(acquisition_log)
     success_count = int(acquisition_log["status"].eq("success").sum())
     valid_unique_count = int(
         acquisition_log.loc[
@@ -508,23 +513,14 @@ def build_data_diagnosis(
     return pd.DataFrame(rows).sort_values("risk_rank").reset_index(drop=True)
 
 
-def _names(frame: pd.DataFrame, cohort: str, column: str, limit: int) -> list[str]:
-    selected = frame.loc[frame["cohort"].eq(cohort), column]
-    return selected.head(limit).astype(str).tolist()
-
-
 def _write_decision_notes(
     movies: pd.DataFrame,
     log: pd.DataFrame,
     franchises: pd.DataFrame,
     standalones: pd.DataFrame,
-    talent: pd.DataFrame,
-    diagnosis: pd.DataFrame,
 ) -> None:
     all_franchises = franchises.loc[franchises["cohort"].eq("all_years")]
-    modern_franchises = franchises.loc[franchises["cohort"].eq("2000_onward")]
     all_standalones = standalones.loc[standalones["cohort"].eq("all_years")]
-    modern_standalones = standalones.loc[standalones["cohort"].eq("2000_onward")]
     all_franchise_mean = (
         float(all_franchises.head(3)["mean_adjusted_rating"].mean())
         if not all_franchises.empty
@@ -560,11 +556,12 @@ The primary audience comparison recommends **{preference}** for initial quote re
 
 ## Scoring and grouping assumptions
 
-- Each title's vote-adjusted score shrinks its average audience rating toward the dataset mean. The shrinkage strength is the median positive vote count in the analyzed set. This reduces the influence of a high score with few votes; it does not predict license demand or revenue.
-- A franchise bundle is a TMDb collection with at least two analyzed titles in the relevant cohort. Bundles are ranked by mean adjusted score, with total score and votes as tie-breakers. Mean score avoids automatically favoring longer collections; the package's total score is also reported.
+- Each title's vote-adjusted score shrinks its average audience rating toward the dataset mean. The median positive vote count provides a robust, reproducible estimate of typical vote support; it is a dataset-specific heuristic, not a fitted empirical-Bayes prior. Shrinkage reduces the influence of a high score with few votes; it does not predict license demand or revenue.
+- A franchise bundle is a TMDb collection with at least two analyzed candidate titles in the relevant cohort. A real collection with only one title in the fetched candidate set is omitted rather than inferred as a bundle.
+- The shrinkage prior is the catalog mean rating with the median positive vote count as its weight. The median is a robust, reproducible estimate of typical vote support; this is a dataset-specific heuristic, not a fitted empirical-Bayes prior.
 - A title is called standalone only when the source explicitly includes collection metadata and reports no collection. Missing collection metadata is classified as unknown, not standalone.
 - The top-billed actor is the first cast member in source billing order. Billing order is only a proxy for lead status.
-- Talent signals include directors and top-billed actors with at least three analyzed titles. Mean score, spread, title count, and vote support are descriptive associations, not evidence that talent causes licensing success.
+- Talent signals include directors and top-billed actors with at least three analyzed titles. Rating spread uses population standard deviation (`ddof=0`). Mean score, spread, title count, and vote support are descriptive associations, not evidence that talent causes licensing success.
 - The $14M budget-share figure in the deal note distributes budget in proportion to adjusted audience score across the eight primary negotiation targets. This assumes score points have equal additive value. It is a planning anchor only, not a market valuation or profit estimate.
 
 ## Candidate reconciliation
@@ -572,6 +569,8 @@ The primary audience comparison recommends **{preference}** for initial quote re
 - {source_records} source records were logged.
 - {success_count} unique movies were retrieved into the current analysis.
 - {duplicate_count} duplicate source rows were linked to earlier records; they do not represent unique missing movies.
+- {int(log["duplicate_movie_rows_removed"].sum())} duplicate movie-data rows
+  were removed and recorded against their source IDs.
 - {invalid_count} source IDs could not be interpreted as positive integer TMDb IDs.
 - {failed_ids} valid unique IDs remain unresolved in the current acquisition log.
 - {len(movies)} titles made the current analysis. Unresolved or invalid records could alter rankings; their financial effect is unknown.
@@ -754,9 +753,20 @@ def run_recommendations(
     movies_path: str | Path = MOVIES_PATH,
     acquisition_log_path: str | Path = ACQUISITION_LOG_PATH,
     offers_path: str | Path = OFFERS_PATH,
+    *,
+    movie_data: pd.DataFrame | None = None,
+    acquisition_log_data: pd.DataFrame | None = None,
 ) -> dict[str, pd.DataFrame]:
-    movies = pd.read_csv(movies_path)
-    acquisition_log = pd.read_csv(acquisition_log_path)
+    movies = (
+        movie_data.copy()
+        if movie_data is not None
+        else pd.read_csv(movies_path)
+    )
+    acquisition_log = (
+        acquisition_log_data.copy()
+        if acquisition_log_data is not None
+        else pd.read_csv(acquisition_log_path)
+    )
     franchises = build_franchise_targets(movies)
     standalones = build_standalone_shortlist(movies)
     talent = build_talent_signals(movies)
@@ -777,9 +787,7 @@ def run_recommendations(
     talent.to_csv(TALENT_PATH, index=False)
     diagnosis.to_csv(DIAGNOSIS_PATH, index=False)
     acquisition_log.to_csv(RECONCILIATION_PATH, index=False)
-    _write_decision_notes(
-        movies, acquisition_log, franchises, standalones, talent, diagnosis
-    )
+    _write_decision_notes(movies, acquisition_log, franchises, standalones)
     _write_client_memo(movies, acquisition_log, franchises, standalones, talent, offers)
     return {
         "franchises": franchises,

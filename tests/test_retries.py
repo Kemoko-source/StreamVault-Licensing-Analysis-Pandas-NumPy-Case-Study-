@@ -2,9 +2,10 @@
 
 from unittest.mock import patch
 
+import pytest
 import requests
 
-from src.acquire import tmdb_get
+from src.acquire import BASE_URL, acquisition_settings_from_environment, tmdb_get
 
 
 class FakeResponse:
@@ -27,9 +28,11 @@ class FakeSession:
     def __init__(self, results):
         self.results = iter(results)
         self.calls = 0
+        self.requests = []
 
     def get(self, *args, **kwargs):
         self.calls += 1
+        self.requests.append((args, kwargs))
         result = next(self.results)
         if isinstance(result, Exception):
             raise result
@@ -49,6 +52,9 @@ def test_retry_after_is_respected_for_rate_limit_response():
 
     assert payload == {"id": 550}
     assert session.calls == 2
+    assert session.requests[0][0][0] == f"{BASE_URL}/movie/550"
+    assert session.requests[0][1]["params"] == {"api_key": "test-key"}
+    assert session.requests[0][1]["timeout"] == 30
     sleep.assert_called_once_with(2.0)
 
 
@@ -117,10 +123,38 @@ def test_repeated_authentication_error_stops_after_one_retry():
 
 
 def test_invalid_retry_configuration_is_rejected():
-    for options in ({"max_attempts": 0}, {"backoff_seconds": -1}):
-        try:
+    for options in (
+        {"max_attempts": 0},
+        {"max_attempts": False},
+        {"backoff_seconds": -1},
+        {"backoff_seconds": float("nan")},
+    ):
+        with pytest.raises(ValueError):
             tmdb_get("/movie/550", "test-key", session=FakeSession([]), **options)
-        except ValueError:
-            pass
-        else:
-            raise AssertionError("Invalid retry settings must raise ValueError")
+
+
+def test_acquisition_settings_read_retry_and_pacing_overrides(monkeypatch):
+    monkeypatch.setenv("TMDB_MAX_ATTEMPTS", "4")
+    monkeypatch.setenv("TMDB_BACKOFF_SECONDS", "0.5")
+    monkeypatch.setenv("TMDB_REQUEST_DELAY_SECONDS", "0.1")
+
+    settings = acquisition_settings_from_environment()
+
+    assert settings.max_attempts == 4
+    assert settings.backoff_seconds == 0.5
+    assert settings.request_delay_seconds == 0.1
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("TMDB_MAX_ATTEMPTS", "0"),
+        ("TMDB_BACKOFF_SECONDS", "nan"),
+        ("TMDB_REQUEST_DELAY_SECONDS", "-0.1"),
+    ],
+)
+def test_acquisition_settings_reject_invalid_overrides(monkeypatch, name, value):
+    monkeypatch.setenv(name, value)
+
+    with pytest.raises(ValueError):
+        acquisition_settings_from_environment()

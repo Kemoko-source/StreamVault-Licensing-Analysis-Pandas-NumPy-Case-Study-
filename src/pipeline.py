@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from src.acquire import (
     ACQUISITION_LOG_PATH,
     PROJECT_ROOT,
+    acquisition_settings_from_environment,
     acquire_movies,
     load_raw_movie_ids,
 )
@@ -25,12 +26,28 @@ def run_pipeline() -> dict[str, pd.DataFrame]:
     if not api_key:
         raise RuntimeError("TMDB_API_KEY is not set in the environment or project .env")
 
-    # Each step writes inputs or reports needed by the step that follows.
-    movies = acquire_movies(load_raw_movie_ids(), api_key)
+    settings = acquisition_settings_from_environment()
+    movies = acquire_movies(
+        load_raw_movie_ids(),
+        api_key,
+        delay_seconds=settings.request_delay_seconds,
+        max_attempts=settings.max_attempts,
+        backoff_seconds=settings.backoff_seconds,
+    )
+    # Keep the audit log persisted, but pass movie and offer data between stages.
+    if not ACQUISITION_LOG_PATH.is_file():
+        raise FileNotFoundError(
+            f"Acquisition did not create its expected log: {ACQUISITION_LOG_PATH}"
+        )
     acquisition_log = pd.read_csv(ACQUISITION_LOG_PATH)
-    rating_summary, quality_summary = run_analysis()
-    recommendations = run_recommendations()
-    license_summary, license_candidates = run_license_decision()
+    rating_summary, quality_summary = run_analysis(movie_data=movies)
+    recommendations = run_recommendations(
+        movie_data=movies,
+        acquisition_log_data=acquisition_log,
+    )
+    license_summary, license_candidates = run_license_decision(
+        offer_data=recommendations["offers"]
+    )
 
     return {
         "movies": movies,

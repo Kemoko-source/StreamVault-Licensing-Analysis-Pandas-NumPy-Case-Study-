@@ -13,9 +13,11 @@ view of titles released from 2000 onward.
 ## Decision
 
 Adjust each movie's rating toward the analyzed catalog's average, using the
-median positive vote count as the adjustment strength. Report the full catalog
-and post-1999 results separately, and use both only to prioritize quote
-requests.
+median positive vote count as the adjustment strength. The median is a robust,
+reproducible estimate of typical vote support and is less influenced by a few
+extremely popular titles than the mean. This is a dataset-specific heuristic,
+not a fitted empirical-Bayes prior. Report the full catalog and post-1999
+results separately, and use both only to prioritize quote requests.
 
 ## Alternatives considered
 

@@ -1,7 +1,6 @@
 """Offline end-to-end scalability check for a 500-film catalog."""
 
 from decimal import Decimal
-from pathlib import Path
 from unittest.mock import patch
 
 import pandas as pd
@@ -17,7 +16,10 @@ from src.licensing import build_license_decision
 
 def test_pipeline_handles_500_films_without_live_api_calls(tmp_path):
     # Generate predictable records to test scale without network access.
-    def fake_fetch_movie(tmdb_id, api_key, session):
+    def fake_fetch_movie(tmdb_id, api_key, session, **settings):
+        assert api_key == "offline-test-key"
+        assert session is not None
+        assert settings == {"max_attempts": 3, "backoff_seconds": 1.0}
         release_year = 1960 + tmdb_id % 61
         rating = 5.0 + (tmdb_id % 50) / 10
         return {

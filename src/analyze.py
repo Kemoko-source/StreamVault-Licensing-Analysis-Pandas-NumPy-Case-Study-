@@ -15,6 +15,22 @@ RATING_SUMMARY_PATH = REPORT_DIR / "rating_summary.csv"
 QUALITY_REPORT_PATH = REPORT_DIR / "data_quality_summary.csv"
 CONTENT_SHORTLIST_PATH = REPORT_DIR / "content_shortlist.csv"
 OFFER_TEMPLATE_PATH = PROJECT_ROOT / "data" / "raw" / "license_offers_template.csv"
+QUALITY_MISSINGNESS_FIELDS = (
+    "tmdb_id",
+    "title",
+    "release_year",
+    "vote_average",
+    "vote_count",
+    "popularity",
+    "genres",
+    "budget",
+    "revenue",
+    "collection_id",
+    "collection_name",
+    "collection_metadata_status",
+    "director",
+    "top_billed_actor",
+)
 
 
 def build_rating_summary(movies: pd.DataFrame) -> pd.DataFrame:
@@ -52,14 +68,15 @@ def build_rating_summary(movies: pd.DataFrame) -> pd.DataFrame:
         cohort_ratings = ratings[mask]
         cohort_votes = votes[mask]
         positive_vote_weights = cohort_votes > 0
-        weighted_average = (
-            float(np.average(
-                cohort_ratings[positive_vote_weights],
-                weights=cohort_votes[positive_vote_weights],
-            ))
-            if positive_vote_weights.any()
-            else np.nan
-        )
+        if positive_vote_weights.any():
+            weighted_average = float(
+                np.average(
+                    cohort_ratings[positive_vote_weights],
+                    weights=cohort_votes[positive_vote_weights],
+                )
+            )
+        else:
+            weighted_average = np.nan
         rows.append(
             {
                 "cohort": cohort,
@@ -135,6 +152,7 @@ def build_content_shortlist(movies: pd.DataFrame, limit: int = 10) -> pd.DataFra
     # Pull low-vote ratings toward the catalog average to reduce noisy extremes.
     prior_mean = float(np.mean(ratings[valid]))
     positive_votes = votes[valid & (votes > 0)]
+    # Median positive votes is a robust, representative support level for shrinkage.
     prior_vote_count = float(np.median(positive_votes)) if positive_votes.size else 0.0
     denominator = votes + prior_vote_count
     adjusted = np.full(len(movies), prior_mean, dtype=float)
@@ -277,7 +295,9 @@ def build_data_quality_summary(movies: pd.DataFrame) -> pd.DataFrame:
             )
 
     # Report missing values by field so problems are easy to trace.
-    for column in movies.columns:
+    for column in QUALITY_MISSINGNESS_FIELDS:
+        if column not in movies:
+            continue
         rows.append(
             {
                 "metric": f"missing_values_{column}",
@@ -290,9 +310,11 @@ def build_data_quality_summary(movies: pd.DataFrame) -> pd.DataFrame:
 def run_analysis(
     input_path: str | Path = INPUT_PATH,
     report_dir: str | Path = REPORT_DIR,
+    *,
+    movie_data: pd.DataFrame | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Load processed movies and write reproducible CSV analysis summaries."""
-    movies = pd.read_csv(input_path)
+    """Analyze provided movies or load them, then write reproducible summaries."""
+    movies = movie_data.copy() if movie_data is not None else pd.read_csv(input_path)
     rating_summary = build_rating_summary(movies)
     quality_summary = build_data_quality_summary(movies)
     content_shortlist = build_content_shortlist(movies)
