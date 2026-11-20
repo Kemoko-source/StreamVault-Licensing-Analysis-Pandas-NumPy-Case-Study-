@@ -51,6 +51,9 @@ and does not make API calls.
 python -m pytest -q
 ```
 
+GitHub Actions runs this test suite with Python 3.15 on pushes and pull requests
+to `main`.
+
 Generated CSV reports and the client memo are written to `reports/`. Key
 outputs include the ranked franchise and standalone lists, talent signals,
 data diagnosis, candidate reconciliation, decision notes, and licensing

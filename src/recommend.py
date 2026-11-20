@@ -701,8 +701,8 @@ def _write_client_memo(
     invalid_count = int(log["status"].eq("invalid").sum())
     memo = f"""# Memo to Kwame
 
-**From:** Content Analysis Team  
-**Date:** {date.today():%d %B %Y}  
+**From:** Content Analysis Team\\
+**Date:** {date.today():%d %B %Y}\\
 **Subject:** Negotiation priorities for the $14M content budget
 
 ## What I found
@@ -726,10 +726,12 @@ and {all_standalone_lead}.
 
 {recommendation} These scores show audience interest, not financial return.
 
-**Three franchise targets:**  
+**Three franchise targets:**
+
 {franchise_lines(all_franchises)}
 
-**Five standalone targets** (all confirmed outside a collection; score, votes):  
+**Five standalone targets** (all confirmed outside a collection; score, votes):
+
 {standalone_lines(all_standalones)}
 
 **Repeated talent** (films, score): Directors — {talent_line('director')};

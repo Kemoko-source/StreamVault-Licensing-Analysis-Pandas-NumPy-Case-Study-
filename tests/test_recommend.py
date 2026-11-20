@@ -2,7 +2,12 @@
 
 import pandas as pd
 
-from src.recommend import OFFER_FIELDS, _complete_offer_count, build_standalone_shortlist
+from src.recommend import (
+    OFFER_FIELDS,
+    _complete_offer_count,
+    _write_client_memo,
+    build_standalone_shortlist,
+)
 
 
 def test_missing_collection_metadata_does_not_crash_or_mark_titles_standalone():
@@ -40,3 +45,21 @@ def test_complete_offer_count_counts_complete_rows_not_all_or_nothing():
 
     assert _complete_offer_count(offers) == 1
     assert _complete_offer_count(offers.iloc[0:0]) == 0
+
+
+def test_client_memo_uses_clean_markdown_line_breaks(tmp_path, monkeypatch):
+    from src import recommend
+
+    monkeypatch.setattr(recommend, "CLIENT_MEMO_PATH", tmp_path / "client_memo.md")
+    _write_client_memo(
+        pd.DataFrame(),
+        pd.DataFrame(columns=["status", "used_cached_data", "tmdb_id"]),
+        pd.DataFrame(columns=["cohort"]),
+        pd.DataFrame(columns=["cohort"]),
+        pd.DataFrame(columns=["cohort", "role", "talent"]),
+        pd.DataFrame(columns=OFFER_FIELDS),
+    )
+
+    memo = (tmp_path / "client_memo.md").read_text(encoding="utf-8")
+
+    assert all(line == line.rstrip() for line in memo.splitlines())
