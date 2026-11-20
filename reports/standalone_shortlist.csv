@@ -1,0 +1,11 @@
+cohort,rank,tmdb_id,title,release_year,adjusted_rating,vote_average,vote_count,genres,director,top_billed_actor,reason
+2000_onward,1,157336,Interstellar,2014,8.244812355933503,8.493,41967,Adventure|Drama|Science Fiction,Christopher Nolan,Matthew McConaughey,"Vote-adjusted score 8.24 supported by 41,967 votes; confirmed outside a collection."
+2000_onward,2,27205,Inception,2010,8.15321021341425,8.373,40781,Action|Science Fiction|Crime,Christopher Nolan,Leonardo DiCaprio,"Vote-adjusted score 8.15 supported by 40,781 votes; confirmed outside a collection."
+2000_onward,3,129,Spirited Away,2001,8.108337715978546,8.537,19250,Animation|Family|Fantasy,Hayao Miyazaki,Rumi Hiiragi,"Vote-adjusted score 8.11 supported by 19,250 votes; confirmed outside a collection."
+2000_onward,4,1124,The Prestige,2006,7.917454768905728,8.2,18493,Drama|Mystery|Science Fiction,Christopher Nolan,Hugh Jackman,"Vote-adjusted score 7.92 supported by 18,493 votes; confirmed outside a collection."
+2000_onward,5,10681,WALL·E,2008,7.8975941970908385,8.129,21219,Animation|Family|Science Fiction,Andrew Stanton,Ben Burtt,"Vote-adjusted score 7.90 supported by 21,219 votes; confirmed outside a collection."
+all_years,1,278,The Shawshank Redemption,1994,8.354065342796105,8.735,31890,Drama|Crime,Frank Darabont,Tim Robbins,"Vote-adjusted score 8.35 supported by 31,890 votes; confirmed outside a collection."
+all_years,2,157336,Interstellar,2014,8.244812355933503,8.493,41967,Adventure|Drama|Science Fiction,Christopher Nolan,Matthew McConaughey,"Vote-adjusted score 8.24 supported by 41,967 votes; confirmed outside a collection."
+all_years,3,680,Pulp Fiction,1994,8.18050549148072,8.48,31373,Thriller|Crime|Comedy,Quentin Tarantino,John Travolta,"Vote-adjusted score 8.18 supported by 31,373 votes; confirmed outside a collection."
+all_years,4,13,Forrest Gump,1994,8.16508990139886,8.461,30927,Comedy|Drama|Romance,Robert Zemeckis,Tom Hanks,"Vote-adjusted score 8.17 supported by 30,927 votes; confirmed outside a collection."
+all_years,5,550,Fight Club,1999,8.163611470345067,8.437,33389,Drama|Thriller,David Fincher,Edward Norton,"Vote-adjusted score 8.16 supported by 33,389 votes; confirmed outside a collection."

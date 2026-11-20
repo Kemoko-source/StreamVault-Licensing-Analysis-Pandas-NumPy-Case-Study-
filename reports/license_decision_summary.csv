@@ -1,0 +1,3 @@
+cohort,budget_usd,decision_status,selected_packages,selected_titles,total_license_cost_usd,budget_remaining_usd,total_adjusted_rating,scope_caveat
+all_years,14000000.0,no_eligible_offers,0,0,0.0,14000000.0,0.0,"Assumes offers marked available cover the intended territory and window. Portfolio value is the sum of audience scores, not financial ROI."
+2000_onward,14000000.0,no_eligible_offers,0,0,0.0,14000000.0,0.0,"Assumes offers marked available cover the intended territory and window. Portfolio value is the sum of audience scores, not financial ROI."
